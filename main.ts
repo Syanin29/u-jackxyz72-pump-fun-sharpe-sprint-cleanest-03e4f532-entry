@@ -38,6 +38,8 @@ mustHold(cfg.maxHold > 0 && cfg.cooldown >= 0 && cfg.maxEntries >= 1, 'hold/cool
 mustHold(cfg.maxMain >= 1 && cfg.maxExposureSol > 0, 'position/exposure caps invalid');
 mustHold(cfg.targetCoins >= 20 && cfg.targetFills >= cfg.targetCoins, 'pacing targets below guardrail floor');
 mustHold(cfg.paceSecs > 0 && cfg.probeSol >= cfg.minBuySol && cfg.maxProbes >= 1, 'probe pacing invalid');
+mustHold(cfg.addSol >= cfg.minBuySol && cfg.maxAdds >= 0 && cfg.addStep >= 0 && cfg.addIfUp >= 0, 'pyramid add below smallest buy or step/trigger negative');
+mustHold(cfg.bigSellSol > 0 && cfg.holdIfUp >= 0 && cfg.maxDevBuy >= 0, 'exit/dev thresholds invalid');
 if (broken.length > 0) throw new Error(`invalid strategy config: ${broken.join('; ')}`);
 
 await runBot(createStrategy(DEFAULT_PARAMS));
