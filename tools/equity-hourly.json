@@ -1,0 +1,274 @@
+{
+  "provenance": "Derived 2026-11-27 from grade-local --save output (result.json per_token + action-log.json) and kit dataset events (CreateEvent block_time). Per-token realized PnL attributed to the hour of the mint creation; round trips close within <=600 slots (~4 min) of entry (entry <=6 slots after creation), so cross-hour spill is at most ~4 min at hour boundaries. Hourly Sharpe recomputed from these 24 hourly returns (mean/std, ddof=1) = +0.1649 vs scorer official +0.1643 (gap 0.0005: scorer uses mark-to-market hourly equity, this file uses realized-only PnL). Tx fee 105000 lamports/fill; the single failed tx (105000 lamports) is excluded from the hourly split (its hour is not identifiable from the action log) and is noted in the README. Fee sensitivity PnL at 0x/3x is a linear extrapolation from the scorer own 1x/2x points (slope 0.06328307 SOL per 1x); Sharpe at each fee level is recomputed from hourly returns with per-hour fees (curve fees from per_token + 105000/fill).",
+  "window_start_epoch": 1793588943,
+  "capital_lamports": 10000000000,
+  "hourly": [
+    {
+      "hour": 0,
+      "pnl_lamports": -5467290,
+      "curve_fees_lamports": 5086746,
+      "fills": 20,
+      "mints": 7,
+      "wins": 1
+    },
+    {
+      "hour": 1,
+      "pnl_lamports": -1878666,
+      "curve_fees_lamports": 4476649,
+      "fills": 25,
+      "mints": 8,
+      "wins": 2
+    },
+    {
+      "hour": 2,
+      "pnl_lamports": -1314449,
+      "curve_fees_lamports": 236061,
+      "fills": 2,
+      "mints": 1,
+      "wins": 0
+    },
+    {
+      "hour": 3,
+      "pnl_lamports": -8275143,
+      "curve_fees_lamports": 2664305,
+      "fills": 14,
+      "mints": 7,
+      "wins": 0
+    },
+    {
+      "hour": 4,
+      "pnl_lamports": -17774179,
+      "curve_fees_lamports": 3179601,
+      "fills": 10,
+      "mints": 4,
+      "wins": 0
+    },
+    {
+      "hour": 5,
+      "pnl_lamports": 4925000,
+      "curve_fees_lamports": 3688698,
+      "fills": 10,
+      "mints": 4,
+      "wins": 2
+    },
+    {
+      "hour": 6,
+      "pnl_lamports": 6916616,
+      "curve_fees_lamports": 1341739,
+      "fills": 3,
+      "mints": 1,
+      "wins": 1
+    },
+    {
+      "hour": 7,
+      "pnl_lamports": 0,
+      "curve_fees_lamports": 0,
+      "fills": 0,
+      "mints": 0,
+      "wins": 0
+    },
+    {
+      "hour": 8,
+      "pnl_lamports": -4150046,
+      "curve_fees_lamports": 1649776,
+      "fills": 4,
+      "mints": 2,
+      "wins": 0
+    },
+    {
+      "hour": 9,
+      "pnl_lamports": -1881935,
+      "curve_fees_lamports": 425454,
+      "fills": 2,
+      "mints": 1,
+      "wins": 0
+    },
+    {
+      "hour": 10,
+      "pnl_lamports": 0,
+      "curve_fees_lamports": 0,
+      "fills": 0,
+      "mints": 0,
+      "wins": 0
+    },
+    {
+      "hour": 11,
+      "pnl_lamports": -6329171,
+      "curve_fees_lamports": 3068236,
+      "fills": 6,
+      "mints": 3,
+      "wins": 1
+    },
+    {
+      "hour": 12,
+      "pnl_lamports": 10183149,
+      "curve_fees_lamports": 1110231,
+      "fills": 3,
+      "mints": 1,
+      "wins": 1
+    },
+    {
+      "hour": 13,
+      "pnl_lamports": 9428233,
+      "curve_fees_lamports": 1373530,
+      "fills": 3,
+      "mints": 1,
+      "wins": 1
+    },
+    {
+      "hour": 14,
+      "pnl_lamports": 1455083,
+      "curve_fees_lamports": 1817994,
+      "fills": 5,
+      "mints": 2,
+      "wins": 1
+    },
+    {
+      "hour": 15,
+      "pnl_lamports": 0,
+      "curve_fees_lamports": 0,
+      "fills": 0,
+      "mints": 0,
+      "wins": 0
+    },
+    {
+      "hour": 16,
+      "pnl_lamports": 46060939,
+      "curve_fees_lamports": 6211349,
+      "fills": 14,
+      "mints": 5,
+      "wins": 4
+    },
+    {
+      "hour": 17,
+      "pnl_lamports": -4978102,
+      "curve_fees_lamports": 870544,
+      "fills": 2,
+      "mints": 1,
+      "wins": 0
+    },
+    {
+      "hour": 18,
+      "pnl_lamports": -7842921,
+      "curve_fees_lamports": 2135376,
+      "fills": 4,
+      "mints": 2,
+      "wins": 0
+    },
+    {
+      "hour": 19,
+      "pnl_lamports": 6558912,
+      "curve_fees_lamports": 1718395,
+      "fills": 5,
+      "mints": 2,
+      "wins": 2
+    },
+    {
+      "hour": 20,
+      "pnl_lamports": 23046058,
+      "curve_fees_lamports": 3035123,
+      "fills": 7,
+      "mints": 3,
+      "wins": 2
+    },
+    {
+      "hour": 21,
+      "pnl_lamports": 7638684,
+      "curve_fees_lamports": 1349547,
+      "fills": 2,
+      "mints": 1,
+      "wins": 1
+    },
+    {
+      "hour": 22,
+      "pnl_lamports": -2266745,
+      "curve_fees_lamports": 1209076,
+      "fills": 2,
+      "mints": 1,
+      "wins": 0
+    },
+    {
+      "hour": 23,
+      "pnl_lamports": -5114207,
+      "curve_fees_lamports": 1104275,
+      "fills": 2,
+      "mints": 1,
+      "wins": 0
+    }
+  ],
+  "totals": {
+    "net_pnl_lamports": 48939820,
+    "sharpe": "0.164308520",
+    "max_drawdown": "0.004323681",
+    "fills": 145,
+    "distinct_mints": 58
+  },
+  "window": {
+    "start_utc": "2026-11-02T03:09:03Z",
+    "end_utc": "2026-11-03T03:09:03Z",
+    "start_epoch": 1793588943,
+    "hours": 24
+  },
+  "halves": [
+    {
+      "label": "H1 hours 0-11",
+      "pnl_lamports": -35229263,
+      "sharpe_recomputed": -0.45949,
+      "positive_hours": 2
+    },
+    {
+      "label": "H2 hours 12-23",
+      "pnl_lamports": 84169083,
+      "sharpe_recomputed": 0.46751,
+      "positive_hours": 7
+    }
+  ],
+  "fee_sensitivity": [
+    {
+      "multiplier": 0,
+      "pnl_lamports": 112222890,
+      "sharpe_recomputed": 0.354055,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    },
+    {
+      "multiplier": 1,
+      "pnl_lamports": 48939820,
+      "sharpe_recomputed": 0.164855,
+      "pnl_source": "scorer official"
+    },
+    {
+      "multiplier": 2,
+      "pnl_lamports": -14343250,
+      "sharpe_recomputed": -0.048947,
+      "pnl_source": "scorer official (cost_sensitivity)"
+    },
+    {
+      "multiplier": 3,
+      "pnl_lamports": -77626320,
+      "sharpe_recomputed": -0.26848,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    }
+  ],
+  "probe_split": {
+    "probe_buys": 27,
+    "probe_mints": 19,
+    "probe_only_mints": 18,
+    "probe_only_pnl_lamports": -11163019,
+    "probe_only_fills": 48,
+    "probe_only_wins": 1,
+    "snipe_buys": 41,
+    "snipe_mints": 41,
+    "snipe_mints_with_fills": 40,
+    "snipe_pnl_lamports": 60102839,
+    "snipe_fills": 97,
+    "snipe_wins": 18,
+    "note": "Probe = buy of exactly 0.01 SOL (probeSol). Snipe = any other buy (first buy = min(1%-of-reserve cap, 0.05 SOL), so capped snipes have variable sizes 0.011-0.049 SOL). One probed mint was later sniped (5sQyLNyz..., net +0.000474 SOL, counted in snipe). One snipe buy (7waAwdMm...) never filled; 3 of 68 buy orders never filled (2 rejected + 1 failed tx)."
+  },
+  "validation": {
+    "sharpe_recomputed": 0.164855,
+    "sharpe_official": "0.164308520",
+    "bootstrap_sharpe_5th_pct": -0.2408,
+    "deflated_sharpe_approx": 0.116,
+    "note": "DSR approx uses the Bailey-Lopez de Prado formula with N=25 disclosed trials (best of ~25 graded variants) and T=24 hourly observations; it is an approximation, not fa-quant output (this bot is not a fa-quant strategy). Bootstrap is a fixed-seed resample of the 24 hourly returns."
+  }
+}
