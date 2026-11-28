@@ -1,5 +1,5 @@
 {
-  "provenance": "Derived 2026-11-27 from grade-local --save output (result.json per_token + action-log.json) and kit dataset events (CreateEvent block_time). Per-token realized PnL attributed to the hour of the mint creation; round trips close within <=600 slots (~4 min) of entry (entry <=6 slots after creation), so cross-hour spill is at most ~4 min at hour boundaries. Hourly Sharpe recomputed from these 24 hourly returns (mean/std, ddof=1) = +0.1649 vs scorer official +0.1643 (gap 0.0005: scorer uses mark-to-market hourly equity, this file uses realized-only PnL). Tx fee 105000 lamports/fill; the single failed tx (105000 lamports) is excluded from the hourly split (its hour is not identifiable from the action log) and is noted in the README. Fee sensitivity PnL at 0x/3x is a linear extrapolation from the scorer own 1x/2x points (slope 0.06328307 SOL per 1x); Sharpe at each fee level is recomputed from hourly returns with per-hour fees (curve fees from per_token + 105000/fill).",
+  "provenance": "Derived 2026-11-28 from grade-local --save output (result.json per_token + action-log.json) and kit dataset events (CreateEvent block_time). Per-token realized PnL attributed to the hour of the mint creation; round trips close within <=600 slots (~4 min) of entry (entry <=6 slots after creation), so cross-hour spill is at most ~4 min at hour boundaries. Hourly Sharpe recomputed from these 24 hourly returns (mean/std, ddof=1) = +0.1649 vs scorer official +0.1643 (gap 0.0005: scorer uses mark-to-market hourly equity, this file uses realized-only PnL). Tx fee 105000 lamports/fill; the single failed tx (105000 lamports) is excluded from the hourly split (its hour is not identifiable from the action log) and is noted in the README. Fee sensitivity PnL at 0x/3x is a linear extrapolation from the scorer own 1x/2x points (slope 0.06328307 SOL per 1x); Sharpe at each fee level is recomputed from hourly returns with per-hour fees (curve fees from per_token + 105000/fill). v3 (28 Nov 2026): added fee_sensitivity_fine (0x..3x in 0.5x steps, same convention) and per_mint_distribution (58 per-mint PnL values, leave-one-out without top-1/top-3/top-5, median PnL per mint, breakeven fee multiplier 1.773348) — re-derived from the same frozen grade output (action_log_sha256 unchanged).",
   "window_start_epoch": 1793588943,
   "capital_lamports": 10000000000,
   "hourly": [
@@ -249,6 +249,363 @@
       "pnl_source": "linear extrapolation from scorer 1x/2x slope"
     }
   ],
+  "fee_sensitivity_fine": [
+    {
+      "multiplier": 0,
+      "pnl_lamports": 112222890,
+      "sharpe_recomputed": 0.354055,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    },
+    {
+      "multiplier": 0.5,
+      "pnl_lamports": 80581355,
+      "sharpe_recomputed": 0.263332,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    },
+    {
+      "multiplier": 1,
+      "pnl_lamports": 48939820,
+      "sharpe_recomputed": 0.164855,
+      "pnl_source": "scorer official"
+    },
+    {
+      "multiplier": 1.5,
+      "pnl_lamports": 17298285,
+      "sharpe_recomputed": 0.06005,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    },
+    {
+      "multiplier": 2,
+      "pnl_lamports": -14343250,
+      "sharpe_recomputed": -0.048947,
+      "pnl_source": "scorer official (cost_sensitivity)"
+    },
+    {
+      "multiplier": 2.5,
+      "pnl_lamports": -45984785,
+      "sharpe_recomputed": -0.159443,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    },
+    {
+      "multiplier": 3,
+      "pnl_lamports": -77626320,
+      "sharpe_recomputed": -0.26848,
+      "pnl_source": "linear extrapolation from scorer 1x/2x slope"
+    }
+  ],
+  "per_mint_distribution": {
+    "per_mint": [
+      {
+        "mint": "GAPWCmtX1e8X55jtFf7aJiSMP3krdxBg8gY5WKcWpump",
+        "pnl_lamports": 31496399,
+        "fills": 3
+      },
+      {
+        "mint": "J4nMyqq3NSym6Sh3AfctR8krxFsbTvEenX3ZaR27pump",
+        "pnl_lamports": 27729982,
+        "fills": 3
+      },
+      {
+        "mint": "9DU5CwdWfjiX16vWPYnKdoivPpp2jepSb65AShkFpump",
+        "pnl_lamports": 10183149,
+        "fills": 3
+      },
+      {
+        "mint": "2K8uHkXyudiZv5wDSVNMUCyqkyodhc2apQKf497Dpump",
+        "pnl_lamports": 9476489,
+        "fills": 3
+      },
+      {
+        "mint": "3MFV7NTpRgf98LEKUJ4verfz6HA5PgiAX2V1fRMepump",
+        "pnl_lamports": 9428233,
+        "fills": 3
+      },
+      {
+        "mint": "4ieHRALJGeLmDfi21XtJte6yHzjVPYoL3wESQeHFpump",
+        "pnl_lamports": 7638684,
+        "fills": 2
+      },
+      {
+        "mint": "GoWnqjMMNywQRwREva9s9CwcP279Pzsa8ZfoSZCaVqJE",
+        "pnl_lamports": 6917447,
+        "fills": 3
+      },
+      {
+        "mint": "3hqDVvzqVsCRmgJNS3wGvRcfGBmo58JQPQokyAnhpump",
+        "pnl_lamports": 6916616,
+        "fills": 3
+      },
+      {
+        "mint": "HYoe9cEHBKTmkWtfzn1XYF42F2TTb97DjRJ6te7vpump",
+        "pnl_lamports": 5796091,
+        "fills": 3
+      },
+      {
+        "mint": "2P6Hm1AAqsfcjjZae6FbFrzCWCEJcKXEsdNziiLmpump",
+        "pnl_lamports": 5492309,
+        "fills": 3
+      },
+      {
+        "mint": "DAV3NpCKaEEz1Lwy5zGnakTMNPthwBfyeGqp71aBpump",
+        "pnl_lamports": 5142732,
+        "fills": 3
+      },
+      {
+        "mint": "5yg7hyqCs7UoaV6WEyBKVpN9k71SVPi3CwgAxs54pump",
+        "pnl_lamports": 5045215,
+        "fills": 3
+      },
+      {
+        "mint": "Ei5V7Lo4kKFoXJKmp9gvwSDjQpiC7RX8K5jzBQd2pump",
+        "pnl_lamports": 4216901,
+        "fills": 3
+      },
+      {
+        "mint": "HnAWkTuFVziHgJv5MRZwMKfnaJBpaYyUDWUABAbjpump",
+        "pnl_lamports": 4095087,
+        "fills": 3
+      },
+      {
+        "mint": "unKHeccPqXYAFxzsK8MoP34xu3kuEhM8ABCcPKspump",
+        "pnl_lamports": 2592693,
+        "fills": 2
+      },
+      {
+        "mint": "3pvDn51zEuFjaqA5ZV9z5v3G5RoKYuopY41GNpSCpump",
+        "pnl_lamports": 1230955,
+        "fills": 2
+      },
+      {
+        "mint": "CvV2gbYbYqYdhw67RyW7MrA1S3Hybvu5wtWTeuZJpump",
+        "pnl_lamports": 762821,
+        "fills": 2
+      },
+      {
+        "mint": "zvhHFQwhSq2DMQSCLEDSJVEwkMUqAKWghEpE9AYpump",
+        "pnl_lamports": 432340,
+        "fills": 2
+      },
+      {
+        "mint": "13jgUWv5EykTGx7zpnTRhK7GzNAAYdToSoQ2H3Grpump",
+        "pnl_lamports": 369776,
+        "fills": 2
+      },
+      {
+        "mint": "BeCPzU2syWrLUz3BfY5RMhKzYM8Nqj2MrSZuSdMTpump",
+        "pnl_lamports": -192066,
+        "fills": 4
+      },
+      {
+        "mint": "G2mgCoexXGh1Vt7UZjyqJ8GzGxYrfM9rpuUaBniepump",
+        "pnl_lamports": -277152,
+        "fills": 2
+      },
+      {
+        "mint": "Ekdk2VjmPBPqA66gVEdXzi3MY1KxUEh8zTyVcf9kpump",
+        "pnl_lamports": -369509,
+        "fills": 2
+      },
+      {
+        "mint": "EvWc68y1GFB1NTWa9DjA51v1xtYykq3tZidSuECkpump",
+        "pnl_lamports": -404470,
+        "fills": 2
+      },
+      {
+        "mint": "9nUCmRzpZJ2eo5Ke5JMsqJfYYa5HNzjjHv1kNgn8pump",
+        "pnl_lamports": -410790,
+        "fills": 4
+      },
+      {
+        "mint": "9Tk3UZW4BPcVc2KPqRRMaxBqeTKfBHAUGwHxmbfCpump",
+        "pnl_lamports": -437253,
+        "fills": 2
+      },
+      {
+        "mint": "8FN62vy4iGFytqkRCq7K3y1XjYGWrLohXe6eypLPpump",
+        "pnl_lamports": -450553,
+        "fills": 2
+      },
+      {
+        "mint": "2h8CtBgK8owwz8oSsUtnhHYcZZhRAgbsHuZEUgKypump",
+        "pnl_lamports": -450902,
+        "fills": 2
+      },
+      {
+        "mint": "9HyfWbv29X5nN26YeWFx4WV6Ts4SjExtPdKdgdvcpump",
+        "pnl_lamports": -456917,
+        "fills": 2
+      },
+      {
+        "mint": "FSW7YBiPADrSzp5rNWH1VrviZTfWY3xV1amWkmt7pump",
+        "pnl_lamports": -456917,
+        "fills": 2
+      },
+      {
+        "mint": "Ffr8hwXN16eYMLaBbJwsPqKDmZor7Su31rqP5LNzpump",
+        "pnl_lamports": -456917,
+        "fills": 2
+      },
+      {
+        "mint": "66Zp3XP87jzp7b5ezcwwct9fX9wgvgAu8rYJAkDFpump",
+        "pnl_lamports": -462731,
+        "fills": 2
+      },
+      {
+        "mint": "mb9PoUuicZgj2tgZ9Ze95XiaKUZgmQegCewitj5pump",
+        "pnl_lamports": -886933,
+        "fills": 4
+      },
+      {
+        "mint": "CvDkikodQJiikkJWWZ11E75m9wqRnw3BXCszAtS5pump",
+        "pnl_lamports": -912129,
+        "fills": 4
+      },
+      {
+        "mint": "87NEsxKHKnyjQ22k9jjDfL4XrZFRWhmsu7dDGbenpump",
+        "pnl_lamports": -1314449,
+        "fills": 2
+      },
+      {
+        "mint": "BrvXux1mKMfszaAkrwcdRW7Em2Hp8U7hWFK3yCWApump",
+        "pnl_lamports": -1334469,
+        "fills": 2
+      },
+      {
+        "mint": "EhXQL8oRQ7t88YBSfd8i88VL5Qr6tuTGhV3mKCAbpump",
+        "pnl_lamports": -1444571,
+        "fills": 2
+      },
+      {
+        "mint": "7FX3mAuWS5VcLVs1UxJ8U2kN4Uq5LcYKtWERXyEXpump",
+        "pnl_lamports": -1578826,
+        "fills": 6
+      },
+      {
+        "mint": "5sQyLNyzJSHAsEBXKdxTdBtneXkvQQaDZX5JjtDdpump",
+        "pnl_lamports": -1818355,
+        "fills": 6
+      },
+      {
+        "mint": "8MdJnvsmDUQdM9wrgFdhZS5evQnan6sTG3fA4kBEpump",
+        "pnl_lamports": -1879351,
+        "fills": 2
+      },
+      {
+        "mint": "8mBtEhfMX9vrBx2zBU3pTtzM4YrNdiWrT6cQHGbjpump",
+        "pnl_lamports": -1881935,
+        "fills": 2
+      },
+      {
+        "mint": "ArApeUEZKi2cnr9NL5ShoFFQ2rFL8jEqJwdpzV6Apump",
+        "pnl_lamports": -2009021,
+        "fills": 2
+      },
+      {
+        "mint": "GvgjaLqnNXq9wFtwfpuFAFF4rXMgXHuGv5y7ArqFpump",
+        "pnl_lamports": -2014281,
+        "fills": 2
+      },
+      {
+        "mint": "9yehmot55iUTHAnAwBqEDADTCES73D9RkJMawF2pump",
+        "pnl_lamports": -2141025,
+        "fills": 2
+      },
+      {
+        "mint": "HBfxkRra6RN1Y9GzzDq17wTagxbEqVHvYD8oQoMwpump",
+        "pnl_lamports": -2266745,
+        "fills": 2
+      },
+      {
+        "mint": "6srpvJisVNkMXQuZFKE1yuV9t3WunFAUHKX6J4Vvpump",
+        "pnl_lamports": -2500169,
+        "fills": 2
+      },
+      {
+        "mint": "DMa6t3vZh8EWVfNFCkhaxruDCvBbKXG93jwn65jLpump",
+        "pnl_lamports": -2521653,
+        "fills": 2
+      },
+      {
+        "mint": "4qdxa7By1LQs3e5jGJP8mTxwC4APsJqhHsrXnVjApump",
+        "pnl_lamports": -3067656,
+        "fills": 2
+      },
+      {
+        "mint": "HuQz3WhFoMzSok92cyHHgo4t1xzyZQnMPdECEgrTpump",
+        "pnl_lamports": -3565881,
+        "fills": 2
+      },
+      {
+        "mint": "35kcJvHfy39fLqF1skNMYRTtbUpyD72CDFLfEoutpump",
+        "pnl_lamports": -3687649,
+        "fills": 2
+      },
+      {
+        "mint": "DPpYpnxjTs6xt8Y1evv1EuooKxiaLZ1yPbLX4vc1pump",
+        "pnl_lamports": -4492470,
+        "fills": 2
+      },
+      {
+        "mint": "6v2fKDqNa8W6qNW7rTqT4XMR4xKfkSQvvYUfatgkpump",
+        "pnl_lamports": -4621159,
+        "fills": 2
+      },
+      {
+        "mint": "CVtNxCi4WL59utEbHPHBeHJumX5pgLqW5E7GgfdDpump",
+        "pnl_lamports": -4640053,
+        "fills": 2
+      },
+      {
+        "mint": "27UsbCZtx9YVNVLNoCGpMocTZwiRZHbTX2i9yr8spump",
+        "pnl_lamports": -4978102,
+        "fills": 2
+      },
+      {
+        "mint": "5JpomczNh18NuNBsrWq1j5uwffZiLjSQwkyCR9gWpump",
+        "pnl_lamports": -5114207,
+        "fills": 2
+      },
+      {
+        "mint": "fQYz36e4JFGBBLniESvu9nfYucXpzs2W8kgJnS9pump",
+        "pnl_lamports": -5116264,
+        "fills": 2
+      },
+      {
+        "mint": "3EnBmqQ6Xiie3aPTQnuh5t5FdjVvxpSB5DqpvgxxZnGu",
+        "pnl_lamports": -5699524,
+        "fills": 2
+      },
+      {
+        "mint": "EntwjTApooRjYgvQUYdo2THLzHCSfNPxWSosZF4Gpump",
+        "pnl_lamports": -6508452,
+        "fills": 2
+      },
+      {
+        "mint": "HYuriYD4kRsawa1GZBnZx15JQAzaDDJzhcK6GtZwou1r",
+        "pnl_lamports": -13202593,
+        "fills": 2
+      }
+    ],
+    "wins": 19,
+    "losses": 39,
+    "median_pnl_lamports": -456917,
+    "leave_one_out": [
+      {
+        "without_top_k": 1,
+        "net_pnl_lamports": 17443421
+      },
+      {
+        "without_top_k": 3,
+        "net_pnl_lamports": -20469710
+      },
+      {
+        "without_top_k": 5,
+        "net_pnl_lamports": -39374432
+      }
+    ],
+    "breakeven_fee_multiplier": 1.773348,
+    "note": "per_mint sorted by realized PnL desc. leave_one_out = net PnL with the top-k mints removed. breakeven_fee_multiplier is the linear-extrapolation point where net PnL hits 0 (slope method; the total-fees method 1 + net/totalFees gives 1.775804 — both round to ~1.77x)."
+  },
   "probe_split": {
     "probe_buys": 27,
     "probe_mints": 19,

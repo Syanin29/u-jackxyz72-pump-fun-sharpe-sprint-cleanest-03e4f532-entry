@@ -1,19 +1,26 @@
-// generate-charts.mjs — Clean Sharpe Sniper (v2 tooling).
+// generate-charts.mjs — Clean Sharpe Sniper (v3 tooling).
 //
 // Two modes, both deterministic (Node stdlib only, no network, no clock,
 // no randomness beyond a fixed-seed LCG used for the bootstrap):
 //
 //   node tools/generate-charts.mjs
-//       Read tools/equity-hourly.json and (re)write figures/equity-curve.svg.
-//       Re-running it produces a byte-identical file (checked by verify.mjs).
+//       Read tools/equity-hourly.json and (re)write figures/equity-curve.svg
+//       AND figures/fee-pnl-sensitivity.svg. Re-running it produces
+//       byte-identical files (checked by verify.mjs).
 //
 //   node tools/generate-charts.mjs --from-grade <grade-save-dir> --dataset <kit-dataset-dir>
 //       Recompute tools/equity-hourly.json from a grade-local --save directory
 //       (result.json + action-log.json) and the kit dataset events, then
-//       regenerate the figure. This is how the committed JSON was produced:
+//       regenerate both figures. This is how the committed JSON was produced:
 //         node cli/makefun.mjs grade-local --kit <kit> --bot <entry> \
 //           --driver process --worktree --save <dir> --json
 //         node tools/generate-charts.mjs --from-grade <dir> --dataset <kit>/dataset
+//
+// v3 additions: deriveFromGrade also emits `fee_sensitivity_fine` (0x..3x in
+// 0.5x steps) and `per_mint_distribution` (the 58 per-mint PnL values sorted
+// desc, leave-one-out net PnL without the top-1/top-3/top-5, median PnL per
+// mint, breakeven fee multiplier), which feed the second figure
+// (renderFeePnlSvg) and the v3 deep-dive tables in the README.
 //
 // Method (see tools/equity-hourly.json "provenance" + README "How the figure
 // is made"): per-token realized PnL from the scorer is attributed to the hour
@@ -40,6 +47,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const DATA_PATH = path.join(ROOT, 'tools', 'equity-hourly.json');
 const FIG_PATH = path.join(ROOT, 'figures', 'equity-curve.svg');
+const FEE_FIG_PATH = path.join(ROOT, 'figures', 'fee-pnl-sensitivity.svg');
 
 const LAMPORTS_PER_SOL = 1e9;
 const TX_FEE_LAMPORTS = 105000; // 5000 base + 100000 priority, per fill
@@ -188,6 +196,49 @@ function deriveFromGrade(saveDir, datasetDir) {
       pnl_source: mult === 1 ? 'scorer official' : mult === 2 ? 'scorer official (cost_sensitivity)' : 'linear extrapolation from scorer 1x/2x slope',
     };
   });
+  // v3: fine-grained fee sensitivity (0x..3x in 0.5x steps) — same
+  // convention as fee_sensitivity: scorer numbers at 1x/2x, linear
+  // extrapolation from the 1x/2x slope elsewhere; Sharpe recomputed
+  // from hourly returns with per-hour fees at each tier. The 2x row's
+  // hourly recomputation differs from the scorer by the same 305365
+  // lamports gap disclosed in the README (scorer number is used).
+  const feeSensitivityFine = [0, 0.5, 1, 1.5, 2, 2.5, 3].map((mult) => {
+    const pnlH = hourly.map((x) => x.pnl_lamports + (1 - mult) * (x.curve_fees_lamports + TX_FEE_LAMPORTS * x.fills));
+    const r = pnlH.map((v) => v / capital);
+    const pnl =
+      mult === 1
+        ? Number(metrics.net_pnl_lamports)
+        : mult === 2
+          ? Number(metrics.cost_sensitivity.net_pnl_lamports)
+          : Number(metrics.net_pnl_lamports) + (1 - mult) * slope;
+    return {
+      multiplier: mult,
+      pnl_lamports: pnl,
+      sharpe_recomputed: Number(sharpeOf(r).toFixed(6)),
+      pnl_source: mult === 1 ? 'scorer official' : mult === 2 ? 'scorer official (cost_sensitivity)' : 'linear extrapolation from scorer 1x/2x slope',
+    };
+  });
+  // v3: per-mint realized PnL distribution (58 mints, sorted desc) —
+  // the raw material for the leave-one-out table and the histogram in
+  // figures/fee-pnl-sensitivity.svg. Breakeven fee multiplier from the
+  // same slope: PnL(m) = net + (1-m)*slope = 0 at m = 1 + net/slope.
+  const perMint = [...perToken]
+    .map((t) => ({ mint: t.mint, pnl_lamports: Number(t.realized_pnl_lamports), fills: t.fills }))
+    .sort((a, b) => b.pnl_lamports - a.pnl_lamports);
+  const topSum = (k) => perMint.slice(0, k).reduce((s, t) => s + t.pnl_lamports, 0);
+  const sortedPnl = perToken.map((t) => Number(t.realized_pnl_lamports)).sort((a, b) => a - b);
+  const perMintDistribution = {
+    per_mint: perMint,
+    wins: perToken.filter((t) => Number(t.realized_pnl_lamports) > 0).length,
+    losses: perToken.filter((t) => Number(t.realized_pnl_lamports) < 0).length,
+    median_pnl_lamports: (sortedPnl[28] + sortedPnl[29]) / 2,
+    leave_one_out: [1, 3, 5].map((k) => ({
+      without_top_k: k,
+      net_pnl_lamports: Number(metrics.net_pnl_lamports) - topSum(k),
+    })),
+    breakeven_fee_multiplier: Number((1 + Number(metrics.net_pnl_lamports) / slope).toFixed(6)),
+    note: 'per_mint sorted by realized PnL desc. leave_one_out = net PnL with the top-k mints removed. breakeven_fee_multiplier is the linear-extrapolation point where net PnL hits 0 (slope method; the total-fees method 1 + net/totalFees gives 1.775804 — both round to ~1.77x).',
+  };
   // Probe vs snipe split from the action log: a probe buy is exactly
   // probeSol (0.01 SOL = 10,000,000 lamports); every other buy is a snipe
   // first buy (min of the 1%-of-reserve cap and 0.05 SOL).
@@ -235,7 +286,7 @@ function deriveFromGrade(saveDir, datasetDir) {
   };
   return {
     provenance:
-      'Derived 2026-11-27 from grade-local --save output (result.json per_token + action-log.json) and kit dataset events (CreateEvent block_time). Per-token realized PnL attributed to the hour of the mint creation; round trips close within <=600 slots (~4 min) of entry (entry <=6 slots after creation), so cross-hour spill is at most ~4 min at hour boundaries. Hourly Sharpe recomputed from these 24 hourly returns (mean/std, ddof=1) = +0.1649 vs scorer official +0.1643 (gap 0.0005: scorer uses mark-to-market hourly equity, this file uses realized-only PnL). Tx fee 105000 lamports/fill; the single failed tx (105000 lamports) is excluded from the hourly split (its hour is not identifiable from the action log) and is noted in the README. Fee sensitivity PnL at 0x/3x is a linear extrapolation from the scorer own 1x/2x points (slope 0.06328307 SOL per 1x); Sharpe at each fee level is recomputed from hourly returns with per-hour fees (curve fees from per_token + 105000/fill).',
+      'Derived 2026-11-28 from grade-local --save output (result.json per_token + action-log.json) and kit dataset events (CreateEvent block_time). Per-token realized PnL attributed to the hour of the mint creation; round trips close within <=600 slots (~4 min) of entry (entry <=6 slots after creation), so cross-hour spill is at most ~4 min at hour boundaries. Hourly Sharpe recomputed from these 24 hourly returns (mean/std, ddof=1) = +0.1649 vs scorer official +0.1643 (gap 0.0005: scorer uses mark-to-market hourly equity, this file uses realized-only PnL). Tx fee 105000 lamports/fill; the single failed tx (105000 lamports) is excluded from the hourly split (its hour is not identifiable from the action log) and is noted in the README. Fee sensitivity PnL at 0x/3x is a linear extrapolation from the scorer own 1x/2x points (slope 0.06328307 SOL per 1x); Sharpe at each fee level is recomputed from hourly returns with per-hour fees (curve fees from per_token + 105000/fill). v3 (28 Nov 2026): added fee_sensitivity_fine (0x..3x in 0.5x steps, same convention) and per_mint_distribution (58 per-mint PnL values, leave-one-out without top-1/top-3/top-5, median PnL per mint, breakeven fee multiplier 1.773348) — re-derived from the same frozen grade output (action_log_sha256 unchanged).',
     window_start_epoch: w0,
     capital_lamports: capital,
     hourly,
@@ -254,6 +305,8 @@ function deriveFromGrade(saveDir, datasetDir) {
     },
     halves,
     fee_sensitivity: feeSensitivity,
+    fee_sensitivity_fine: feeSensitivityFine,
+    per_mint_distribution: perMintDistribution,
     probe_split: probeSplit,
     validation,
   };
@@ -333,6 +386,116 @@ function renderSvg(data) {
   return parts.join('\n') + '\n';
 }
 
+// --- v3: second figure — fee sensitivity curve over a per-mint PnL
+// histogram (960x560, same dark theme). Top panel: net PnL vs fee
+// multiplier 0x..3x, breakeven vertical (~1.77x) and the loss zone above
+// it shaded red. Bottom panel: histogram of realized PnL across the 58
+// mints (green = winning bins, red = losing bins), median and top-3
+// annotated. Fallback: if the JSON has no per_mint_distribution (an older
+// committed JSON), the bottom panel shows the 24 hourly PnL bars instead
+// of the histogram, so the figure still renders from committed data.
+function renderFeePnlSvg(data) {
+  const W = 960;
+  const H = 560;
+  const L = 78;
+  const R = 20;
+  const T = 46;
+  const MID = 316; // boundary between fee-curve panel and histogram panel
+  const B = 516;
+  const plotW = W - L - R;
+  const fee = data.fee_sensitivity_fine || data.fee_sensitivity;
+  const breakeven =
+    data.per_mint_distribution && data.per_mint_distribution.breakeven_fee_multiplier
+      ? data.per_mint_distribution.breakeven_fee_multiplier
+      : 1.773348;
+  const feeMult = fee.map((r) => r.multiplier);
+  const feePnl = fee.map((r) => r.pnl_lamports / LAMPORTS_PER_SOL);
+  const feeMin = Math.min(0, ...feePnl);
+  const feeMax = Math.max(0.01, ...feePnl);
+  const feePad = (feeMax - feeMin) * 0.08 + 0.005;
+  const feeTop = feeMax + feePad;
+  const feeBot = feeMin - feePad;
+  const xFee = (m) => L + (m / 3) * plotW;
+  const yFee = (v) => T + ((feeTop - v) / (feeTop - feeBot)) * (MID - T - 28);
+  const feePts = feePnl.map((v, i) => `${xFee(feeMult[i]).toFixed(1)},${yFee(v).toFixed(1)}`).join(' ');
+  const feeGrid = [-0.05, 0, 0.05, 0.1].filter((v) => v >= feeBot && v <= feeTop);
+
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="monospace" font-size="12">`);
+  parts.push(`<rect width="${W}" height="${H}" fill="#1a1a2e"/>`);
+  parts.push(`<text x="${L}" y="24" fill="#e0e0e0" font-size="16" font-weight="bold">Fee sensitivity — net PnL vs fee multiplier (dev window 24 h)</text>`);
+  parts.push(`<text x="${L}" y="40" fill="#aaaaaa" font-size="11">Breakeven at ${breakeven.toFixed(2)}x fees · 1x fees = 0.0633 SOL · edge dies between 1x and 2x</text>`);
+  // Loss zone above breakeven, shaded red.
+  parts.push(`<rect x="${xFee(breakeven).toFixed(1)}" y="${T}" width="${(xFee(3) - xFee(breakeven)).toFixed(1)}" height="${(MID - T - 28).toFixed(1)}" fill="#ff4444" opacity="0.08"/>`);
+  parts.push(`<text x="${((xFee(breakeven) + xFee(3)) / 2).toFixed(1)}" y="${(T + 16).toFixed(1)}" fill="#ff4444" text-anchor="middle">loss zone</text>`);
+  for (const v of feeGrid) {
+    parts.push(`<line x1="${L}" y1="${yFee(v).toFixed(1)}" x2="${W - R}" y2="${yFee(v).toFixed(1)}" stroke="#333333" stroke-width="1"/>`);
+    parts.push(`<text x="${L - 8}" y="${(yFee(v) + 4).toFixed(1)}" fill="#aaaaaa" text-anchor="end">${v >= 0 ? '+' : ''}${v.toFixed(2)} SOL</text>`);
+  }
+  for (const m of [0, 0.5, 1, 1.5, 2, 2.5, 3]) {
+    parts.push(`<line x1="${xFee(m).toFixed(1)}" y1="${T}" x2="${xFee(m).toFixed(1)}" y2="${MID - 28}" stroke="#2a2a44" stroke-width="1"/>`);
+    parts.push(`<text x="${xFee(m).toFixed(1)}" y="${MID - 12}" fill="#aaaaaa" text-anchor="middle">${m}x</text>`);
+  }
+  parts.push(`<line x1="${L}" y1="${yFee(0).toFixed(1)}" x2="${W - R}" y2="${yFee(0).toFixed(1)}" stroke="#555555" stroke-width="1" stroke-dasharray="4 3"/>`);
+  parts.push(`<polyline points="${esc(feePts)}" fill="none" stroke="#00ff88" stroke-width="2"/>`);
+  feePnl.forEach((v, i) => {
+    parts.push(`<circle cx="${xFee(feeMult[i]).toFixed(1)}" cy="${yFee(v).toFixed(1)}" r="3.5" fill="${v >= 0 ? '#00ff88' : '#ff4444'}"/>`);
+    parts.push(`<text x="${xFee(feeMult[i]).toFixed(1)}" y="${(yFee(v) - 8).toFixed(1)}" fill="#e0e0e0" text-anchor="middle">${v >= 0 ? '+' : ''}${v.toFixed(3)}</text>`);
+  });
+  parts.push(`<line x1="${xFee(breakeven).toFixed(1)}" y1="${T}" x2="${xFee(breakeven).toFixed(1)}" y2="${MID - 28}" stroke="#ffaa00" stroke-width="1.5" stroke-dasharray="5 3"/>`);
+  parts.push(`<text x="${(xFee(breakeven) + 6).toFixed(1)}" y="${(MID - 34).toFixed(1)}" fill="#ffaa00">breakeven ${breakeven.toFixed(2)}x</text>`);
+
+  // Bottom panel.
+  parts.push(`<text x="${L}" y="${MID + 14}" fill="#e0e0e0" font-size="13" font-weight="bold">${data.per_mint_distribution ? 'Distribution of realized PnL per mint — 58 mints' : 'Hourly PnL — 24 hours (fallback: no per-mint data in JSON)'}</text>`);
+  const histTop = MID + 22;
+  const histBarTop = histTop + 18; // annotation line sits in the 18px strip above the bars
+  const histBot = B - 8;
+  const histH = histBot - histBarTop;
+  if (data.per_mint_distribution) {
+    const d = data.per_mint_distribution;
+    const bins = [
+      { lo: -Infinity, hi: -0.01, label: '<-0.01' },
+      { lo: -0.01, hi: -0.005, label: '-0.01..-0.005' },
+      { lo: -0.005, hi: -0.002, label: '-0.005..-0.002' },
+      { lo: -0.002, hi: 0, label: '-0.002..0' },
+      { lo: 0, hi: 0.002, label: '0..0.002' },
+      { lo: 0.002, hi: 0.005, label: '0.002..0.005' },
+      { lo: 0.005, hi: 0.01, label: '0.005..0.01' },
+      { lo: 0.01, hi: 0.02, label: '0.01..0.02' },
+      { lo: 0.02, hi: Infinity, label: '>=0.02' },
+    ];
+    const counts = bins.map((b) => d.per_mint.filter((t) => t.pnl_lamports / LAMPORTS_PER_SOL >= b.lo && t.pnl_lamports / LAMPORTS_PER_SOL < b.hi).length);
+    const maxC = Math.max(...counts);
+    const barW = plotW / bins.length;
+    for (let i = 0; i < bins.length; i++) {
+      const bx = L + i * barW;
+      const bh = (counts[i] / maxC) * histH;
+      const win = bins[i].lo >= 0;
+      parts.push(`<rect x="${(bx + 3).toFixed(1)}" y="${(histBot - bh).toFixed(1)}" width="${(barW - 6).toFixed(1)}" height="${bh.toFixed(1)}" fill="${win ? '#00ff88' : '#ff4444'}" opacity="0.75"/>`);
+      parts.push(`<text x="${(bx + barW / 2).toFixed(1)}" y="${(histBot - bh - 5).toFixed(1)}" fill="#e0e0e0" text-anchor="middle">${counts[i]}</text>`);
+      parts.push(`<text x="${(bx + barW / 2).toFixed(1)}" y="${(B + 14).toFixed(1)}" fill="#aaaaaa" text-anchor="middle" font-size="10">${bins[i].label}</text>`);
+    }
+    parts.push(`<text x="${L}" y="${(histTop + 12).toFixed(1)}" fill="#aaaaaa" font-size="11">median ${fmtSol(d.median_pnl_lamports)} SOL · ${d.wins} wins / ${d.losses} losses · top-3: GAPWCmtX +0.0315, J4nMyqq3 +0.0277, 9DU5CwdW +0.0102 (47.9% of gross gains)</text>`);
+    parts.push(`<text x="${L}" y="${B + 26}" fill="#888888" font-size="11">PnL per mint in SOL (realized, from scorer per_token). Without the top-3 mints net PnL is -0.0205 SOL; without the top-5 it is -0.0394 SOL.</text>`);
+  } else {
+    const hourly = data.hourly;
+    const vals = hourly.map((x) => x.pnl_lamports / LAMPORTS_PER_SOL);
+    const vMax = Math.max(0.01, ...vals.map(Math.abs));
+    const barW = plotW / 24;
+    vals.forEach((v, i) => {
+      const bx = L + i * barW;
+      const bh = (Math.abs(v) / vMax) * (histH / 2);
+      const y0 = histBarTop + histH / 2;
+      parts.push(`<rect x="${(bx + 2).toFixed(1)}" y="${(v >= 0 ? y0 - bh : y0).toFixed(1)}" width="${(barW - 4).toFixed(1)}" height="${bh.toFixed(1)}" fill="${v >= 0 ? '#00ff88' : '#ff4444'}" opacity="0.75"/>`);
+      parts.push(`<text x="${(bx + barW / 2).toFixed(1)}" y="${(B + 14).toFixed(1)}" fill="#aaaaaa" text-anchor="middle" font-size="10">${i % 4 === 0 ? 'h+' + i : ''}</text>`);
+    });
+    parts.push(`<line x1="${L}" y1="${(histBarTop + histH / 2).toFixed(1)}" x2="${W - R}" y2="${(histBarTop + histH / 2).toFixed(1)}" stroke="#555555" stroke-width="1" stroke-dasharray="4 3"/>`);
+    parts.push(`<text x="${L}" y="${B + 26}" fill="#888888" font-size="11">Hourly realized PnL in SOL (24 bars). Fallback panel: this JSON predates the per-mint distribution; re-derive with --from-grade to get the histogram.</text>`);
+  }
+  parts.push('</svg>');
+  return parts.join('\n') + '\n';
+}
+
 function main() {
   const args = process.argv.slice(2);
   const fromGrade = args.indexOf('--from-grade');
@@ -351,6 +514,9 @@ function main() {
   const svg = renderSvg(data);
   fs.writeFileSync(FIG_PATH, svg);
   console.log(`wrote ${FIG_PATH} (${svg.length} bytes, sha256 ${createHash('sha256').update(svg).digest('hex').slice(0, 16)}…)`);
+  const feeSvg = renderFeePnlSvg(data);
+  fs.writeFileSync(FEE_FIG_PATH, feeSvg);
+  console.log(`wrote ${FEE_FIG_PATH} (${feeSvg.length} bytes, sha256 ${createHash('sha256').update(feeSvg).digest('hex').slice(0, 16)}…)`);
 }
 
 main();

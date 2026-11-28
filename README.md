@@ -1,4 +1,4 @@
-# Clean Sharpe Sniper — 58 mints, 145 fills, Sharpe +0.164, max DD 0.43% (Pump.fun Sharpe Sprint)
+# Clean Sharpe Sniper — 58 mints, 145 fills, Sharpe +0.164, max DD 0.43% — Probe Pacing System, verified tools/
 
 Paper-trading bot for make.fun's **Pump.fun Sharpe Sprint — Cleanest Paper Bot
 Wins** (`u-jackxyz72-pump-fun-sharpe-sprint-cleanest-03e4f532`).
@@ -12,8 +12,8 @@ needs net PnL above holding cash (above 0 after every fee).
 +0.0489 SOL, Sharpe (hourly) +0.164, max drawdown 0.43%, win rate 31.8%,
 145 fills, 58 distinct mints, 66 round trips.** The strategy is frozen
 (`strategy.ts` and `main.ts` unchanged since v1 — see
-`tools/verify.mjs`); v2 only adds measurement, figures, and tooling around
-the same trades. `action_log_sha256`
+`tools/verify.mjs`); v2 and v3 only add measurement, figures, and tooling
+around the same trades. `action_log_sha256`
 `904e01d5d157e9923caa45c5f98b7bc1f3b46207555dfa82ebe071d17a0c3240`
 is identical to v1.
 
@@ -145,8 +145,8 @@ half from that half's 12 hourly returns (mean/std, ddof=1):
 | Window | PnL (SOL) | Sharpe (hourly) | Positive hours | Winning mints |
 | --- | --- | --- | --- | --- |
 | H1 — hours 0–11 | −0.035229 | −0.459 | 2 / 12 | 7 / 38 |
-| H2 — hours 12–23 | +0.084169 | +0.468 | 7 / 12 | 11 / 20 |
-| Full 24 h | +0.048940 | +0.164 (official +0.1643) | 9 / 24 | 18 / 58 |
+| H2 — hours 12–23 | +0.084169 | +0.468 | 7 / 12 | 12 / 20 |
+| Full 24 h | +0.048940 | +0.164 (official +0.1643) | 9 / 24 | 19 / 58 |
 
 **Honest reading: the edge is NOT consistent across halves — it flips
 sign.** H1 loses money on a negative Sharpe; H2 makes all of it and
@@ -172,9 +172,23 @@ realized-only attribution — see "How the figure is made").
 | Fee multiplier | Net PnL (SOL) | Sharpe (hourly, recomputed) | Verdict |
 | --- | --- | --- | --- |
 | 0x (no fees) | +0.112223 | +0.354 | Positive even gross — but still below the 0.5 bar |
+| 0.5x | +0.080581 | +0.263 | Positive, thin |
 | 1x (as scored) | +0.048940 | +0.165 | Positive, thin |
+| 1.5x | +0.017298 | +0.060 | Barely positive |
 | 2x | −0.014343 | −0.049 | **Loses** — the edge is smaller than the fees |
+| 2.5x | −0.045985 | −0.159 | Loses |
 | 3x | −0.077626 | −0.268 | Loses badly |
+
+**Breakeven fee multiplier: 1.773x.** Net PnL as a function of the fee
+multiplier is linear with slope 0.06328307 SOL per 1x (the scorer's own
+1x→2x slope: +0.048939820 − (−0.014343250)); PnL(m) = 0 at
+m = 1 + 0.048939820 / 0.063283070 = **1.773348**. The alternative
+total-fees method (1 + net / total fees, total fees 0.063082705 SOL)
+gives 1.775804 — both round to **~1.77x**. The edge survives a 77%
+fee increase and dies before fees double; at 1.5x it is already down
+to +0.017 SOL and Sharpe +0.060. PnL at 0.5x/1.5x/2.5x is the same
+linear extrapolation as 0x/3x; Sharpe at each tier is recomputed from
+the 24 hourly returns with per-hour fees.
 
 Note: the hourly recomputation gives −0.014038 SOL at 2x, while the
 scorer reports −0.014343 SOL — a 0.000305 SOL gap whose cause is not
@@ -184,12 +198,111 @@ the gap is 0.5% of total fees and changes no conclusion. The edge dies
 between 1x and 2x fees: gross PnL (+0.112 SOL) is real, but fees eat
 56% of it at 1x and all of it at 2x.
 
-### The 8 promotion checks (quant-strategy-research, frozen before reading results)
+### v3 deep-dive — where the edge actually lives (no strategy change)
+
+v3 changes nothing in `strategy.ts` or `main.ts` — the trades are the
+same 58 mints. What v3 adds is a dissection of those 58 mints, so the
+fragility v2 disclosed in aggregate is now visible mint by mint. All
+numbers below are recomputed from the scorer's `per_token` output
+(`tools/equity-hourly.json`, key `per_mint_distribution`) and the
+action log; `tools/generate-charts.mjs --from-grade` regenerates them.
+
+#### Per-mint PnL distribution — 19 wins, 39 losses, one fat tail
+
+![Fee sensitivity curve and per-mint PnL distribution](figures/fee-pnl-sensitivity.svg)
+
+The typical mint loses a little and a few win big: median PnL per mint
+**−0.000456917 SOL**, mean +0.000843790 SOL. Losses are capped small
+(worst mint −0.013202593 SOL, only 1 of 58 worse than −0.01 SOL — the
+−10% hard stop on a 0.05 SOL stake does its job); wins are fat-tailed
+(12 of 58 mints earn ≥ +0.005 SOL, top mint +0.031496399 SOL). The
+histogram above shows it at a glance: 39 red bars on the left, a long
+green tail on the right.
+
+| Leave-one-out | Net PnL (SOL) | Verdict |
+| --- | --- | --- |
+| Full 58 mints | +0.048940 | Positive |
+| Without top-1 (`GAPWCmtX…` +0.0315) | +0.017443 | Still positive — survives losing its best coin |
+| Without top-3 (+0.0694, 47.9% of gross gains) | −0.020470 | **Loses** — the result needs its top 3 |
+| Without top-5 (+0.0883) | −0.039374 | Loses badly |
+
+Top-1 alone is 21.7% of gross gains; the top-3 are 47.9%. The edge is
+not one coin — it survives losing the single best mint — but it is
+three coins: remove them and the bot is −0.020 SOL underwater.
+
+#### Sharpe without the two support hours
+
+Zero h+16 (+0.0461 SOL) and h+20 (+0.0230 SOL) in the 24 hourly
+returns and recompute Sharpe (mean/std, ddof=1) — same method as the
+split-window table:
+
+| Returns used | Net PnL (SOL) | Sharpe (hourly, recomputed) |
+| --- | --- | --- |
+| Full 24 h | +0.048940 | +0.164855 |
+| Without h+16 only | +0.002879 | +0.014869 |
+| Without h+20 only | +0.025894 | +0.093541 |
+| Without h+16 + h+20 | −0.020167 | **−0.130805** |
+
+Removing h+16 alone collapses Sharpe from +0.165 to +0.015; removing
+both flips it to −0.131. The two hours are +0.0691 SOL against a
+final +0.0489 SOL — without them the bot loses money on a negative
+Sharpe. This is the same concentration as the leave-one-out table,
+now expressed in the ranking metric itself.
+
+#### Snipe vs probe — the edge is only in the snipe
+
+| | Probe-only mints | Snipe mints |
+| --- | --- | --- |
+| Mints (with fills) | 18 | 40 |
+| Winning mints | 1 / 18 (**5.6%**) | 18 / 40 (**45.0%**) |
+| Realized PnL (SOL) | −0.011163 | +0.060103 |
+
+Probes are pure guardrail cost: a 5.6% win rate against 45.0% for
+snipes, and −0.011163 SOL — 23% of the final net PnL — spent to buy
+eligibility, not edge. Probe cost by hour (all 18 probe-only mints
+land in the first 6 hours, then the pace target is met and probes
+stop):
+
+| Hour | Probe-only mints | Probe PnL (SOL) | Snipe mints |
+| --- | --- | --- | --- |
+| h+0 | 4 | −0.001602 | 3 |
+| h+1 | 6 | −0.005479 | 2 |
+| h+2 | 1 | −0.001314 | 0 |
+| h+3 | 6 | −0.002576 | 1 |
+| h+4 | 1 | −0.000192 | 3 |
+| h+5 | 0 | 0.000000 | 4 |
+
+The most expensive probe hour is h+1 (−0.005479 SOL for 6 probes).
+Without probes the first 6 hours would have had 13 snipe mints,
+below the 20-mint floor: the entry would have been ineligible on
+mint count alone. What dev cannot prove is whether 6 hours is enough
+for the probes to close the gap in the *final* window — the pace
+target is calibrated to the dev rate, and the final window's coin
+flow is a fresh draw.
+
+#### OOS proxy — the 20 rebuilt windows (labelled honestly)
+
+This kit has no separate OOS window, so there is no true out-of-sample
+number to report. The closest honest proxy is the stress test's 20
+rebuilt versions of the dev window (full table in the Stress test
+section below): median −0.056090033 SOL, mean −0.049513018 SOL, p10
+−0.116858461 SOL, p90 −0.002606850 SOL, 2/20 positive, dev rank 19/20.
+That is a **proxy, not a separate OOS window** — the rebuilt copies
+reshuffle the same 24 h of coins, so they test robustness to the
+window's composition, not to a new day. What they say, plainly, is
+that the dev +0.049 SOL is a good draw: on 18 of 20 reshuffles the
+same strategy loses money. The 28 Nov re-run reproduces the v2
+summary exactly (deterministic stress seeds), so this is not a new
+sample — it is the same finding, now tabulated copy by copy instead
+of summarized.
+
+### The 12 promotion checks (quant-strategy-research, frozen before reading results)
 
 Universe, costs, and strategy were frozen before any result was read
 (the entry is frozen: `strategy.ts`/`main.ts` unchanged since v1).
 Thresholds are the skill's packaged policy values. A failing check is
-reported as a finding, not worked around.
+reported as a finding, not worked around. Checks 9–12 are new in v3
+(see the v3 deep-dive above for how each is computed).
 
 | # | Check (policy) | Measured | Verdict |
 | --- | --- | --- | --- |
@@ -201,9 +314,13 @@ reported as a finding, not worked around.
 | 6 | Sharpe at 2x costs ≥ 0.3 | −0.049 (PnL −0.014 SOL) | **FAIL** |
 | 7 | Sharpe with +1 session delay ≥ 0.3 | n/a — no delay rerun exists in this kit: replay latency is fixed at 2 slots and a +1-session delay test needs a harness rerun with shifted decisions, which was not run | **n/a** |
 | 8 | Bootstrap Sharpe 5th percentile > 0 | −0.241 (fixed-seed resample of the 24 hourly returns, 10,000 draws) | **FAIL** |
+| 9 | Net PnL without top-3 mints ≥ 0 | −0.020470 SOL (leave-one-out, v3 deep-dive) | **FAIL** |
+| 10 | Sharpe without the two support hours (h+16, h+20) ≥ 0 | −0.130805 (PnL −0.020167 SOL, v3 deep-dive) | **FAIL** |
+| 11 | Breakeven fee multiplier ≥ 2x | 1.773x (slope method; 1.776x by total fees) | **FAIL** |
+| 12 | OOS proxy: median rebuilt-window PnL ≥ 0 (stress-20) | Median −0.056090 SOL, 2/20 positive — proxy only, NOT a separate OOS window (none exists in this kit) | **FAIL** |
 
-**Verdict (quant-trading-validation): NEEDS-WORK — 1 of 8 checks passes,
-1 is n/a.** The strategy is not promotable as a validated strategy. It
+**Verdict (quant-trading-validation): NEEDS-WORK — 1 of 12 checks passes,
+1 is n/a, 10 fail.** The strategy is not promotable as a validated strategy. It
 remains a legitimate single-window competition entry: positive on dev,
 deterministic, inside every guardrail with huge margin, and fully
 disclosed as fragile.
@@ -254,6 +371,36 @@ dev (every house pilot loses on dev too), but a positive final PnL is **not**
 promised. Guardrails hold with huge margin on dev (max drawdown 0.43% vs
 the 50% cap; 58 mints vs the 20 minimum — probes cover the 6 h shortfall).
 
+#### All 20 rebuilt windows (v3: re-run 28 Nov 2026, same result)
+
+The 28 Nov re-run reproduces the v2 summary exactly (the kit's stress
+seeds are deterministic, `makefun-stress/v1`): median −0.056090033 SOL,
+p10 −0.116858461 SOL, p90 −0.002606850 SOL, 18/20 copies lose money,
+dev rank 19/20. The kit reports net PnL only per rebuilt window — no
+Sharpe per window is in its output, so the table below is PnL only,
+reported as-is:
+
+| Copy | Net PnL (SOL) | Copy | Net PnL (SOL) |
+| --- | --- | --- | --- |
+| 0 | −0.098024853 | 10 | −0.062382115 |
+| 1 | **+0.011324238** | 11 | −0.032375487 |
+| 2 | **+0.107110329** | 12 | −0.013934032 |
+| 3 | −0.002606850 | 13 | −0.005525584 |
+| 4 | −0.100754945 | 14 | −0.141066499 |
+| 5 | −0.116858461 | 15 | −0.095067347 |
+| 6 | −0.016590888 | 16 | −0.056090033 |
+| 7 | −0.038979340 | 17 | −0.083351607 |
+| 8 | −0.057235130 | 18 | −0.046683826 |
+| 9 | −0.093189069 | 19 | −0.047978853 |
+
+Mean across the 20 copies is −0.049513018 SOL; only copies 1 and 2
+are positive, and copy 2 (+0.107 SOL) is the only one that beats the
+dev score. Read as an OOS proxy (check 12 below): on 20 rebuilt
+versions of the dev window the bot loses money 90% of the time. That
+is not a separate OOS window — the kit has none — but it is the
+closest honest proxy available, and it says the dev +0.049 SOL is a
+good draw, not a typical one.
+
 ## Probe Pacing System — the guardrail that keeps the entry eligible
 
 **What it is.** A named subsystem of the strategy (`strategy.ts`:
@@ -302,7 +449,7 @@ rate. What dev cannot prove is whether 6 h is enough for the probes to
 close the gap in the *final* window — the pace target is calibrated to
 the dev rate, and the final window's coin flow is a fresh draw.
 
-## How the figure is made
+## How the figures are made
 
 `tools/equity-hourly.json` holds the 24 hourly PnL/fill/mint numbers
 plus the halves, fee-sensitivity, and probe-split tables in this README.
@@ -319,7 +466,18 @@ realized max drawdown is 0.35% vs the official 0.43%; (2) the single
 failed tx (105000 lamports) is excluded from the hourly split because
 its hour is not identifiable from the action log — it is 0.000105 SOL
 and moves no hourly number by more than 0.001. Re-running the
-derivation reproduces the committed JSON exactly (checked 27 Nov 2026).
+derivation reproduces the committed JSON exactly (checked 27 Nov 2026;
+re-derived with the v3 keys 28 Nov 2026 — same hourly values, plus
+`fee_sensitivity_fine` and `per_mint_distribution`).
+
+The second figure, `figures/fee-pnl-sensitivity.svg`, is drawn by the
+same script (`renderFeePnlSvg`) from the same JSON: top panel the
+fine fee-sensitivity curve (0x–3x in 0.5x steps) with the 1.77x
+breakeven line and the loss zone shaded; bottom panel the histogram
+of realized PnL across the 58 mints with the median and the top-3
+annotated. If the JSON predates the v3 keys, the bottom panel falls
+back to the 24 hourly PnL bars, so the figure still renders from
+committed data.
 
 ## Files
 
@@ -331,6 +489,10 @@ derivation reproduces the committed JSON exactly (checked 27 Nov 2026).
   network). See the Tools section below.
 - `figures/equity-curve.svg` — equity curve + drawdown panel, generated
   by `tools/generate-charts.mjs`.
+- `figures/fee-pnl-sensitivity.svg` — (v3) fee-sensitivity curve +
+  per-mint PnL histogram, generated by the same script.
+- `tools/soak.mjs` — (v3) soak test: grade-local 3x, same action log
+  hash every run.
 - `.makefun/owner.json` — payout wallet `CaJ4Trx6nTpXW6rXHDyQjT9GisPmN9zq7bpEjrWSJvrh`
   (account `@quadro-7`).
 
@@ -342,7 +504,7 @@ derivation reproduces the committed JSON exactly (checked 27 Nov 2026).
 HTTPS_PROXY=http://hatch-egress-proxy:3128 HTTP_PROXY=http://hatch-egress-proxy:3128 \
   NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/run/hatch/egress-tls/ca-bundle.pem \
   NODE_OPTIONS=--max-old-space-size=2048 \
-  node tools/verify.mjs --kit <kit-root>
+  node tools/verify.mjs --kit ~/workspace/makefun/u-jackxyz72-pump-fun-sharpe-sprint-cleanest-03e4f532-kit/u-jackxyz72-pump-fun-sharpe-sprint-cleanest-03e4f532-kit
 ```
 
 Runs `grade-local` (process driver, worktree) into a temp dir and
@@ -350,28 +512,54 @@ checks, exiting non-0 on any mismatch: `action_log_sha256` still
 `904e01d5…`, net PnL +0.048939820 SOL, Sharpe +0.164308520, Sortino
 0.398819293, max drawdown 0.004323681, win rate 0.318181818, 66 round
 trips, 145 fills, 58 mints. Then it runs `generate-charts.mjs` twice
-and checks the SVG is byte-identical across runs and matches the
-committed `figures/equity-curve.svg`. Last run 27 Nov 2026: **all
-checks PASS**.
+and checks both SVGs are byte-identical across runs and match the
+committed `figures/equity-curve.svg` and
+`figures/fee-pnl-sensitivity.svg`. Then it reconciles
+`tools/equity-hourly.json` against the scorer totals (hourly rows,
+halves, probe/snipe split, and the v3 per-mint distribution and fine
+fee table). Finally it runs `tools/soak.mjs` (grade-local 3x, same
+action log hash). Last run 28 Nov 2026: **all checks PASS** (Node
+v24.22.1; see the v3 changelog for the full output quote).
+
+### `tools/soak.mjs` — repeat the grade and compare the action log
+
+```sh
+HTTPS_PROXY=http://hatch-egress-proxy:3128 HTTP_PROXY=http://hatch-egress-proxy:3128 \
+  NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/run/hatch/egress-tls/ca-bundle.pem \
+  NODE_OPTIONS=--max-old-space-size=2048 \
+  node tools/soak.mjs --kit ~/workspace/makefun/u-jackxyz72-pump-fun-sharpe-sprint-cleanest-03e4f532-kit/u-jackxyz72-pump-fun-sharpe-sprint-cleanest-03e4f532-kit
+```
+
+Runs `grade-local` 3x into fresh temp dirs and asserts
+`action_log_sha256` is identical every run (exit 1 otherwise).
+`result_sha256` is deliberately NOT asserted: it differs across
+Node versions by design (local harness v24.22.1 vs server v26.13.1).
+Last run 28 Nov 2026: **SOAK OK, 3/3 runs
+`904e01d5d157e9923caa45c5f98b7bc1f3b46207555dfa82ebe071d17a0c3240`**
+(Node v24.22.1).
 
 ### `tools/generate-charts.mjs` — rebuild the figure (and the data)
 
 ```sh
 node tools/generate-charts.mjs
 #   reads tools/equity-hourly.json, rewrites figures/equity-curve.svg
+#   AND figures/fee-pnl-sensitivity.svg
 #   (deterministic: byte-identical every run)
 
 node tools/generate-charts.mjs --from-grade <grade-save-dir> --dataset <kit>/dataset
 #   recomputes tools/equity-hourly.json from grade-local --save output
 #   (result.json + action-log.json + dataset CreateEvents), then redraws
+#   both figures
 ```
 
 The `--from-grade` mode also recomputes the halves, the fee-sensitivity
-table, the probe/snipe split, and the validation block (recomputed
-Sharpe, bootstrap 5th percentile, deflated Sharpe approximation) — so
-every number in this README can be regenerated from the grade output
-instead of trusted from the text. It refuses to derive if the action
-log hash differs from the frozen one.
+table (coarse and fine 0.5x steps), the per-mint distribution
+(leave-one-out, median, breakeven fee multiplier), the probe/snipe
+split, and the validation block (recomputed Sharpe, bootstrap 5th
+percentile, deflated Sharpe approximation) — so every number in this
+README can be regenerated from the grade output instead of trusted
+from the text. It refuses to derive if the action log hash differs
+from the frozen one.
 
 ## Changelog — v1 → v2
 
@@ -393,11 +581,64 @@ it addresses:
 | 4 | Split-window analysis (H1 −0.035 SOL / Sharpe −0.459 vs H2 +0.084 SOL / Sharpe +0.468) + fee-sensitivity table (0x/1x/2x/3x) + the 8 promotion checks + the optimism audit | **B (12.0/20 → target):** v1 disclosed the stress test but had no window-split or fee-sensitivity evidence. The new analysis is honest about the result: the edge flips sign across halves and dies at 2x fees — reported as a finding, not hidden. |
 | 5 | Probe Pacing System documented as a named system with rules + measured evidence (27 probe buys, 18 probe-only mints, −0.000413 SOL per probe buy, all probes in the first 6 h) | **A (30.0/40, hold):** the strongest v1 dimension; the pacing logic was already in the code but unnamed and unevidenced. Now it is a documented system with numbers from the action log. |
 
+## Changelog — v2 → v3
+
+v2 was submitted 27 Nov 2026 08:38 WITA (submission
+`01a21a70-f1a8-72b5-995e-26ccd11eadbb`, claim
+`AF-S75BN-DZ2F8-PYC67-4CWYW`, commit `c64ab2c`). Internal jury v2:
+**74.7/100** (J1 73.5, J2 74.5, J3 76.0 — A ~31.3/40, B ~12.0/20,
+C 14.0/20, D ~8.8/10, E 8.5/10). v3 changes **nothing** in
+`strategy.ts` or `main.ts` — the action log and all dev metrics are
+identical to v1/v2. Every change below is measurement, presentation,
+or tooling, mapped to the jury dimension it addresses:
+
+| # | Change | Jury dimension + reason |
+| --- | --- | --- |
+| 1 | Per-mint PnL distribution (58 mints, median −0.000457 SOL, 19 wins / 39 losses) + leave-one-out table (without top-1 +0.0174 SOL, without top-3 −0.0205 SOL, without top-5 −0.0394 SOL) in the new "v3 deep-dive" section, data in `tools/equity-hourly.json` (`per_mint_distribution`), regenerated by `--from-grade` | **B (12.0/20 → target):** v2 disclosed top-3 concentration as one number (47.9%); v3 shows the whole distribution and exactly where the result breaks. |
+| 2 | Fine fee sensitivity 0x–3x in 0.5x steps + **breakeven fee multiplier 1.773x** (recomputed, not copied — slope method 1 + 0.048939820/0.063283070; total-fees method 1.775804, both ~1.77x) | **B:** v2 had only 0x/1x/2x/3x; v3 pins the exact point where the edge dies and shows 1.5x is already barely positive (+0.017 SOL, Sharpe +0.060). |
+| 3 | Sharpe without the two support hours: without h+16 +0.014869, without h+20 +0.093541, without both **−0.130805** (recomputed from the 24 hourly returns) | **B:** v2 showed the two hours carry the result (+0.0691 vs +0.0489 final); v3 expresses it in the ranking metric — removing both flips Sharpe negative. |
+| 4 | Snipe vs probe win rates (snipe 18/40 = 45.0% vs probe-only 1/18 = 5.6%) + probe cost per hour (h+0…h+4, worst h+1 −0.005479 SOL) | **A/B:** deepens the Probe Pacing evidence — probes are a measured guardrail cost (5.6% win rate), the edge lives only in the snipe filter. |
+| 5 | Promotion checks 8 → 12: (9) net PnL without top-3, (10) Sharpe without h+16+h+20, (11) breakeven fee multiplier, (12) OOS proxy from the stress-20 rebuilt windows (labelled honestly as a proxy, NOT a separate OOS window) | **B:** v2's 8 checks had 1 pass / 1 n/a / 6 fail; v3 adds the four checks the v2 juries asked for by name. |
+| 6 | Second figure `figures/fee-pnl-sensitivity.svg` (fee curve + breakeven + loss zone over a 58-mint PnL histogram, same dark theme, deterministic, checked by `verify.mjs`) + `renderFeePnlSvg` in `tools/generate-charts.mjs` | **C (14.0/20 → target):** all three v2 juries asked for a second figure by name (fee sensitivity + per-mint distribution). |
+| 7 | Title now names the differentiating system and the tooling ("… — Probe Pacing System, verified tools/"); `<kit-root>` replaced with the real kit path and the last verification run recorded (date, PASS, Node version) in the Tools section | **D (~8.8/10 → target):** the two concrete D deductions from the v2 juries, both fixed verbatim. |
+| 8 | New `tools/soak.mjs` (grade-local 3x, identical `action_log_sha256` every run) wired into `verify.mjs` as an additional check; soak hash + Node version recorded in the README | **E (8.5/10 → target):** the last open E item from the v2 juries (no soak test, result_sha256 differing across Node versions disclosed but untested). |
+| 9 | **Held (A):** jury #2's "second named system" (adaptive sizing / regime filter) is NOT built — it needs a `strategy.ts` change and the strategy is frozen. The analysis-only substitute is items 1–4 above (Probe Pacing deep-dive + concentration analysis). No new system is claimed that is not in the code. | **A (hold):** honest scope cut, stated in the entry rather than hidden. |
+
+Verification of v3 (28 Nov 2026, Node v24.22.1) — `tools/verify.mjs`
+output quote (full log in the builder log):
+
+```
+PASS  action_log_sha256: 904e01d5…c3240 (expected 904e01d5…c3240)
+PASS  net_pnl_lamports: 48939820 (expected 48939820)
+PASS  sharpe: 0.164308520 (expected 0.164308520)
+PASS  sortino: 0.398819293 (expected 0.398819293)
+PASS  max_drawdown: 0.004323681 (expected 0.004323681)
+PASS  win_rate: 0.318181818 (expected 0.318181818)
+PASS  round_trips: 66 (expected 66)
+PASS  fills: 145 (expected 145)
+PASS  distinct_mints: 58 (expected 58)
+PASS  chart deterministic (two runs identical, equity): 795eadcf… (expected 795eadcf…)
+PASS  chart matches committed figures/equity-curve.svg: 795eadcf… (expected 795eadcf…)
+PASS  chart deterministic (two runs identical, fee sensitivity): 2dba7ffc… (expected 2dba7ffc…)
+PASS  chart matches committed figures/fee-pnl-sensitivity.svg: 2dba7ffc… (expected 2dba7ffc…)
+PASS  per-mint PnL sums to net PnL: 48939820 (expected 48939820)
+PASS  leave-one-out without top-3: -20469710 (expected -20469710)
+PASS  median PnL per mint: -456917 (expected -456917)
+PASS  breakeven fee multiplier: 1.773348 (expected 1.773348)
+SOAK OK: action_log_sha256 identical across 3 runs: 904e01d5…c3240 (node v24.22.1)
+VERIFY OK: strategy output frozen, both figures deterministic and current, soak passed.
+```
+
 ## Status
 
 - v1 submitted 26 Nov 2026 01:37 WITA (submission above). v2 built
   27 Nov 2026: strategy frozen, `tools/verify.mjs` all PASS,
   figure regenerates byte-identically.
+- v3 built 28 Nov 2026: strategy frozen, `tools/verify.mjs` all PASS
+  (33 checks including the new per-mint reconciliation and the soak
+  test 3/3), both figures regenerate byte-identically, stress-20
+  re-run reproduces the v2 summary exactly. Awaiting internal jury
+  v3; submit only if jury v3 ≥ 77.7.
 - Competition closes 29 Nov 2026 01:00 WITA. The final 6 h window is a
   fresh draw; nothing in this README promises a positive final PnL.
 - LICENSE (MIT) is created by `init` itself — do not add one beforehand.

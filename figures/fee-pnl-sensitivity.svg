@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" font-family="monospace" font-size="12">
+<rect width="960" height="560" fill="#1a1a2e"/>
+<text x="78" y="24" fill="#e0e0e0" font-size="16" font-weight="bold">Fee sensitivity — net PnL vs fee multiplier (dev window 24 h)</text>
+<text x="78" y="40" fill="#aaaaaa" font-size="11">Breakeven at 1.77x fees · 1x fees = 0.0633 SOL · edge dies between 1x and 2x</text>
+<rect x="587.5" y="46" width="352.5" height="242.0" fill="#ff4444" opacity="0.08"/>
+<text x="763.8" y="62.0" fill="#ff4444" text-anchor="middle">loss zone</text>
+<line x1="78" y1="237.7" x2="940" y2="237.7" stroke="#333333" stroke-width="1"/>
+<text x="70" y="241.7" fill="#aaaaaa" text-anchor="end">-0.05 SOL</text>
+<line x1="78" y1="185.2" x2="940" y2="185.2" stroke="#333333" stroke-width="1"/>
+<text x="70" y="189.2" fill="#aaaaaa" text-anchor="end">+0.00 SOL</text>
+<line x1="78" y1="132.6" x2="940" y2="132.6" stroke="#333333" stroke-width="1"/>
+<text x="70" y="136.6" fill="#aaaaaa" text-anchor="end">+0.05 SOL</text>
+<line x1="78" y1="80.1" x2="940" y2="80.1" stroke="#333333" stroke-width="1"/>
+<text x="70" y="84.1" fill="#aaaaaa" text-anchor="end">+0.10 SOL</text>
+<line x1="78.0" y1="46" x2="78.0" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="78.0" y="304" fill="#aaaaaa" text-anchor="middle">0x</text>
+<line x1="221.7" y1="46" x2="221.7" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="221.7" y="304" fill="#aaaaaa" text-anchor="middle">0.5x</text>
+<line x1="365.3" y1="46" x2="365.3" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="365.3" y="304" fill="#aaaaaa" text-anchor="middle">1x</text>
+<line x1="509.0" y1="46" x2="509.0" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="509.0" y="304" fill="#aaaaaa" text-anchor="middle">1.5x</text>
+<line x1="652.7" y1="46" x2="652.7" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="652.7" y="304" fill="#aaaaaa" text-anchor="middle">2x</text>
+<line x1="796.3" y1="46" x2="796.3" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="796.3" y="304" fill="#aaaaaa" text-anchor="middle">2.5x</text>
+<line x1="940.0" y1="46" x2="940.0" y2="288" stroke="#2a2a44" stroke-width="1"/>
+<text x="940.0" y="304" fill="#aaaaaa" text-anchor="middle">3x</text>
+<line x1="78" y1="185.2" x2="940" y2="185.2" stroke="#555555" stroke-width="1" stroke-dasharray="4 3"/>
+<polyline points="78.0,67.2 221.7,100.5 365.3,133.7 509.0,167.0 652.7,200.3 796.3,233.5 940.0,266.8" fill="none" stroke="#00ff88" stroke-width="2"/>
+<circle cx="78.0" cy="67.2" r="3.5" fill="#00ff88"/>
+<text x="78.0" y="59.2" fill="#e0e0e0" text-anchor="middle">+0.112</text>
+<circle cx="221.7" cy="100.5" r="3.5" fill="#00ff88"/>
+<text x="221.7" y="92.5" fill="#e0e0e0" text-anchor="middle">+0.081</text>
+<circle cx="365.3" cy="133.7" r="3.5" fill="#00ff88"/>
+<text x="365.3" y="125.7" fill="#e0e0e0" text-anchor="middle">+0.049</text>
+<circle cx="509.0" cy="167.0" r="3.5" fill="#00ff88"/>
+<text x="509.0" y="159.0" fill="#e0e0e0" text-anchor="middle">+0.017</text>
+<circle cx="652.7" cy="200.3" r="3.5" fill="#ff4444"/>
+<text x="652.7" y="192.3" fill="#e0e0e0" text-anchor="middle">-0.014</text>
+<circle cx="796.3" cy="233.5" r="3.5" fill="#ff4444"/>
+<text x="796.3" y="225.5" fill="#e0e0e0" text-anchor="middle">-0.046</text>
+<circle cx="940.0" cy="266.8" r="3.5" fill="#ff4444"/>
+<text x="940.0" y="258.8" fill="#e0e0e0" text-anchor="middle">-0.078</text>
+<line x1="587.5" y1="46" x2="587.5" y2="288" stroke="#ffaa00" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="593.5" y="282.0" fill="#ffaa00">breakeven 1.77x</text>
+<text x="78" y="330" fill="#e0e0e0" font-size="13" font-weight="bold">Distribution of realized PnL per mint — 58 mints</text>
+<rect x="81.0" y="500.8" width="89.8" height="7.2" fill="#ff4444" opacity="0.75"/>
+<text x="125.9" y="495.8" fill="#e0e0e0" text-anchor="middle">1</text>
+<text x="125.9" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10"><-0.01</text>
+<rect x="176.8" y="479.0" width="89.8" height="29.0" fill="#ff4444" opacity="0.75"/>
+<text x="221.7" y="474.0" fill="#e0e0e0" text-anchor="middle">4</text>
+<text x="221.7" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">-0.01..-0.005</text>
+<rect x="272.6" y="413.9" width="89.8" height="94.1" fill="#ff4444" opacity="0.75"/>
+<text x="317.4" y="408.9" fill="#e0e0e0" text-anchor="middle">13</text>
+<text x="317.4" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">-0.005..-0.002</text>
+<rect x="368.3" y="356.0" width="89.8" height="152.0" fill="#ff4444" opacity="0.75"/>
+<text x="413.2" y="351.0" fill="#e0e0e0" text-anchor="middle">21</text>
+<text x="413.2" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">-0.002..0</text>
+<rect x="464.1" y="479.0" width="89.8" height="29.0" fill="#00ff88" opacity="0.75"/>
+<text x="509.0" y="474.0" fill="#e0e0e0" text-anchor="middle">4</text>
+<text x="509.0" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">0..0.002</text>
+<rect x="559.9" y="486.3" width="89.8" height="21.7" fill="#00ff88" opacity="0.75"/>
+<text x="604.8" y="481.3" fill="#e0e0e0" text-anchor="middle">3</text>
+<text x="604.8" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">0.002..0.005</text>
+<rect x="655.7" y="442.9" width="89.8" height="65.1" fill="#00ff88" opacity="0.75"/>
+<text x="700.6" y="437.9" fill="#e0e0e0" text-anchor="middle">9</text>
+<text x="700.6" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">0.005..0.01</text>
+<rect x="751.4" y="500.8" width="89.8" height="7.2" fill="#00ff88" opacity="0.75"/>
+<text x="796.3" y="495.8" fill="#e0e0e0" text-anchor="middle">1</text>
+<text x="796.3" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">0.01..0.02</text>
+<rect x="847.2" y="493.5" width="89.8" height="14.5" fill="#00ff88" opacity="0.75"/>
+<text x="892.1" y="488.5" fill="#e0e0e0" text-anchor="middle">2</text>
+<text x="892.1" y="530.0" fill="#aaaaaa" text-anchor="middle" font-size="10">>=0.02</text>
+<text x="78" y="350.0" fill="#aaaaaa" font-size="11">median -0.0005 SOL · 19 wins / 39 losses · top-3: GAPWCmtX +0.0315, J4nMyqq3 +0.0277, 9DU5CwdW +0.0102 (47.9% of gross gains)</text>
+<text x="78" y="542" fill="#888888" font-size="11">PnL per mint in SOL (realized, from scorer per_token). Without the top-3 mints net PnL is -0.0205 SOL; without the top-5 it is -0.0394 SOL.</text>
+</svg>
